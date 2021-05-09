@@ -1,5 +1,7 @@
 package com.jwt.udemy.config;
 
+import com.jwt.udemy.domain.jwt.JwtAuthFilter;
+import com.jwt.udemy.domain.jwt.JwtService;
 import com.jwt.udemy.domain.service.Impl.UsuarioServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -13,9 +15,11 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.util.Arrays;
 
@@ -27,11 +31,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private Environment env;
 
     @Autowired
+    private JwtService jwtService;
+
+    @Autowired
     private UsuarioServiceImpl usuarioService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public OncePerRequestFilter jwtFilter () {
+        return new JwtAuthFilter(jwtService, usuarioService);
     }
 
     @Override
@@ -55,7 +67,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .permitAll()
                 .anyRequest().authenticated()
                 .and()
-                .httpBasic();
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
     }
 
 //    @Bean
